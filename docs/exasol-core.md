@@ -42,7 +42,7 @@ python -m pip install -e ".[dev]"
 Set the real values reported for the deployment. Do not commit them:
 
 ```powershell
-$env:EXASOL_DSN = "<host>:<port>"
+$env:EXASOL_DSN = "<host>/<sha256-certificate-fingerprint>:<port>"
 $env:EXASOL_USER = "<database-user>"
 $env:EXASOL_PASSWORD = "<database-password>"
 $env:EXASOL_SCHEMA = "RECALLNEXT"
@@ -51,8 +51,10 @@ $env:EXASOL_ENCRYPTION = "true"
 
 The password is mandatory and no sample credential is used by the application.
 Encryption defaults to enabled. Do not disable certificate verification in
-code; use the connection information and certificate fingerprint supplied by
-the deployment.
+code or use PyExasol's `/nocertcheck` option. For a starter-kit deployment with
+a self-signed certificate, pin the SHA-256 certificate fingerprint in the DSN
+as shown above. For a deployment with a publicly trusted certificate, use the
+connection details supplied by that deployment.
 
 ## Verify and load
 
@@ -137,6 +139,9 @@ database, `lot_id` is always the source-qualified key
 
 - A missing required-source roster or missing coverage for any roster entry
   blocks scope narrowing.
+- Duplicate `LOT_SOURCE_ID:LOT_CODE` identities are detected by a blocking
+  data-quality rule because Exasol Personal does not support a `UNIQUE` table
+  constraint.
 - A raw candidate edge cannot be passed off as a feasible scenario.
 - Unknown timestamps broaden candidates and block narrowing.
 - Negative or fractional case quantities are rejected.
@@ -150,7 +155,7 @@ database, `lot_id` is always the source-qualified key
 ## Current verification boundary
 
 Offline tests validate contracts, fixture invariants, and required SQL safety
-clauses. They do not prove that the SQL compiles on Exasol. Live verification is
-complete only after `python -m data.load_fixture` and
-`python -m backend.smoke` pass against Exasol Personal and the raw output is
-saved for the evaluation report.
+clauses. The schema, fixture loader, and smoke oracle were also run against a
+real Exasol Personal deployment. See `docs/live-exasol-verification.md` for the
+credential-free execution record. Any later SQL or loader change must repeat
+`python -m data.load_fixture` and `python -m backend.smoke` against Exasol.

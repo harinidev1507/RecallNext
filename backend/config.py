@@ -79,6 +79,11 @@ class ExasolConfig:
             raise ConfigurationError(
                 "EXASOL_DSN must include the host and port reported by `exasol info`"
             )
+        if "/nocertcheck" in dsn.lower():
+            raise ConfigurationError(
+                "EXASOL_DSN must validate the server certificate; use its SHA-256 "
+                "fingerprint instead of /nocertcheck"
+            )
         return cls(
             dsn=dsn,
             user=_required(values, "EXASOL_USER"),

@@ -168,6 +168,36 @@ def test_missing_required_source_stream_blocks_narrowing(tmp_path):
     )
 
 
+def test_complete_optional_source_does_not_invalidate_required_coverage(tmp_path):
+    data = copied_fixture(tmp_path)
+    path = data / "source_coverage.csv"
+    with path.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+        fields = list(rows[0])
+    rows.append(
+        {
+            "incident_id": "INC-DEMO-001",
+            "incident_version": "1",
+            "source_system": "OPTIONAL_AUDIT_FEED",
+            "expected_records": "1",
+            "received_records": "1",
+            "is_complete": "true",
+            "issue_detail": "",
+        }
+    )
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    workflow = RecallWorkflow(data)
+    summary = workflow.incident()["summary"]
+
+    assert summary["solver_status"] == "SUCCESS"
+    assert summary["feasible_scenarios"] == 125
+    assert "MISSING_REQUIRED_SOURCE_COVERAGE" not in summary["data_quality_issues"]
+
+
 def test_duplicate_inventory_snapshot_does_not_double_count(tmp_path):
     expected = case("duplicate_inventory_snapshot")
     data = copied_fixture(tmp_path)
@@ -261,6 +291,61 @@ def test_retraction_invalidates_an_accepted_exclusion():
     assert result["evidence"]["status"] == "RETRACTED"
     assert workflow.current_version == expected["version"]
     assert decision(workflow, "S-200")["status"] == expected["retracted_status"]
+
+
+def test_retracting_newest_conflict_preserves_an_older_active_conflict():
+    workflow = default_workflow()
+    label = proposal(
+        workflow,
+        "ACT-LABEL-C100",
+        workflow.example_fact("ACT-LABEL-C100"),
+        "older-conflict-label-qa-v2",
+    )
+    assert (
+        workflow.accept_evidence(label["evidence_id"], "QA reviewer", 1)[
+            "solver_status"
+        ]
+        == "SUCCESS"
+    )
+
+    older_conflict = proposal(
+        workflow,
+        "ACT-PICK-C200",
+        workflow.example_fact("ACT-PICK-C200"),
+        "older-conflict-pick-qa-v2",
+    )
+    assert (
+        workflow.accept_evidence(older_conflict["evidence_id"], "QA reviewer", 2)[
+            "solver_status"
+        ]
+        == "CONFLICT"
+    )
+
+    newest_conflict = proposal(
+        workflow,
+        "ACT-MANIFEST-S200",
+        workflow.example_fact("ACT-MANIFEST-S200"),
+        "newest-conflict-manifest-qa-v2",
+    )
+    assert (
+        workflow.accept_evidence(newest_conflict["evidence_id"], "QA reviewer", 3)[
+            "solver_status"
+        ]
+        == "CONFLICT"
+    )
+
+    result = workflow.retract_evidence(
+        newest_conflict["evidence_id"],
+        "QA reviewer",
+        4,
+        "Newest conflicting source was withdrawn",
+    )
+    decisions = workflow.decisions()
+
+    assert result["solver_status"] == "CONFLICT"
+    assert workflow.current_version == 5
+    assert older_conflict["evidence_id"] in decisions["evidence_references"]
+    assert all(item["status"] == "UNRESOLVED" for item in decisions["decisions"])
 
 
 def test_pending_proposal_cannot_cross_an_incident_version():

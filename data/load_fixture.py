@@ -105,6 +105,14 @@ def _convert(field: str, raw: str) -> object:
     return value
 
 
+def _to_wire_value(value: object) -> object:
+    """Convert validated values to PyExasol's JSON-serializable wire format."""
+
+    if isinstance(value, datetime):
+        return value.isoformat(sep=" ")
+    return value
+
+
 def read_typed_rows(data_directory: Path, spec: TableSpec) -> list[tuple[object, ...]]:
     path = data_directory / f"{spec.csv_name}.csv"
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -255,14 +263,15 @@ def load_fixture(
     counts: dict[str, int] = {}
     for spec in TABLE_SPECS:
         rows = read_typed_rows(data_directory, spec)
+        wire_rows = [tuple(_to_wire_value(value) for value in row) for row in rows]
         columns = ", ".join(field.upper() for field in spec.fields)
         placeholders = ", ".join("?" for _ in spec.fields)
         statement = connection.create_prepared_statement(
             f"INSERT INTO RECALLNEXT.{spec.table_name} ({columns}) "
             f"VALUES ({placeholders})"
         )
-        if rows:
-            statement.execute_prepared(rows)
+        if wire_rows:
+            statement.execute_prepared(wire_rows)
         counts[spec.table_name] = len(rows)
     return counts
 

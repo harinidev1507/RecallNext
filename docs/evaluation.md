@@ -1,19 +1,22 @@
 # Evaluation record
 
-This record separates completed offline QA from pending live database and
-strategy evaluation. The committed operational data is synthetic.
+This record separates three different verification scopes: Adya's completed
+offline QA run, Sakthi's completed live Exasol boundary run, and the still
+pending investigation-strategy evaluation. The committed operational data is
+synthetic.
 
 ## Revision under test
 
 - Harini integration base: `6450a4189fe1a67be379cd915a29a3c59361c5e8`
 - Adya branch: `feat/adya-qa-docs-demo`
-- Dependency state: planner PR #1 is merged into canonical `main`; the Exasol
-  core and Harini integration remain part of Harini PR #3 at the tested base.
+- Combined integration baseline: `940890269d4113bb30a370047620573cfb0faae9`
+- Live Exasol revision: `fcf2a83ee6d77c0cb47b6a7f1e16fcff4fc834bc`
 
-Use the final pull-request head as the exact Adya revision. The raw output file
-records the base and commands; no result here is a live Exasol measurement.
+The raw offline output file records Adya's original base and commands. It is
+historical evidence for that run, not a live Exasol measurement and not a claim
+that every later integration commit ran on the same Mac.
 
-## Machine and tools
+## Offline QA machine and tools
 
 | Item | Recorded value |
 |---|---|
@@ -26,7 +29,7 @@ records the base and commands; no result here is a live Exasol measurement.
 | Ruff | 0.16.7 |
 | Node.js | 24.19.0 |
 | pnpm | 11.19.0 |
-| Exasol | Pending team deployment |
+| Exasol | Not run on this Mac; see the separate AWS live run below |
 
 ## Completed offline checks
 
@@ -47,6 +50,25 @@ matrix `qa-v2`.
 The test duration and Vite build time are local tool runtimes. They are not
 database, solver or end-to-end investigation latency.
 
+### Post-review integration verification
+
+The Greptile follow-up fixes were rerun on 13 September 2026 in a clean Python
+3.11 environment on Windows. This is a separate run from the historical Mac
+artifact above:
+
+| Check | Result |
+|---|---|
+| Python tests | PASS - 83 tests, one dependency deprecation warning |
+| Ruff lint | PASS |
+| Ruff format check | PASS - 34 files |
+| Deterministic fixture regeneration | PASS |
+| pnpm frozen-lockfile install | PASS - pnpm 11.19.0 |
+| TypeScript and Vite production build | PASS |
+
+This rerun covers the workflow, regression tests, and documentation changes in
+the review-fix head. It is not a replacement for the revision-scoped live
+Exasol record below.
+
 ## Correctness scope exercised
 
 The offline suite covers:
@@ -58,6 +80,8 @@ The offline suite covers:
   configured enumeration limits, including a closed inventory with a
   zero-quantity lot;
 - missing required source coverage and duplicate inventory identifiers;
+- an additional complete optional source that does not invalidate coverage of
+  the required source roster;
 - source-qualified lot identity when two suppliers reuse one lot code;
 - mixed-container single-case evidence that tightens only the observed case and
   cannot clear the remaining cases;
@@ -69,6 +93,8 @@ The offline suite covers:
   malformed facts;
 - accepted-evidence retraction rebuilding from active evidence and invalidating
   a prior exclusion;
+- retraction of the newest conflicting record while an older active conflict
+  continues to keep every decision unresolved;
 - persistence rejection when status, bounds, solver status and completeness
   metadata disagree;
 - fixture replacement refusal before deletion when another incident exists;
@@ -78,23 +104,36 @@ These checks establish behavior only for the declared finite inputs. They do
 not certify food safety, prove warehouse-scale performance or validate the SQL
 on an Exasol engine.
 
-## Pending live Exasol experiment
+## Live Exasol verification status
 
-The team deployment owner must supply a reachable Exasol Personal endpoint and
-sanitized connection guidance. Record:
+The Exasol boundary was run successfully on 12 September 2026 against a real,
+containerized Exasol Personal starter-kit deployment on AWS EC2. The verified
+revision was `fcf2a83ee6d77c0cb47b6a7f1e16fcff4fc834bc`.
 
-- deployment type and Exasol version;
-- schema/fixture load result;
-- shipment, candidate-edge and blocking-issue counts;
-- exact SQL revision;
-- candidate query time, planner time and end-to-end time separately;
-- repetition and cold/warm-run method.
+That run established:
 
-The fixture contract expects six shipments, fourteen candidate edges, complete
-coverage and zero blocking issues. These values remain expected until
-`python -m data.load_fixture` and `python -m backend.smoke` succeed on the live
-deployment. The web API currently reads the committed CSV fixture; it must not
-be described as Exasol-backed.
+- Exasol image `docker.io/exasol/nano:2026.2.0-nano.3-amd64`;
+- successful schema and synthetic-fixture loading;
+- six shipments and fourteen candidate edges;
+- zero blocking data-quality issues;
+- `candidate_universe_complete: true`;
+- encrypted PyExasol transport with a pinned certificate fingerprint; and
+- a live duplicate source-qualified lot probe that blocked narrowing and was
+  removed after verification.
+
+The credential-free commands, raw counts, single-run query timings, and
+environment details are recorded in `docs/live-exasol-verification.md`.
+
+The later combined integration baseline `9408902` changed SQL and loader files
+after the recorded `fcf2a83` run. Therefore the live record proves the named
+revision, while an exact-head database rerun remains required before claiming
+that every integrated SQL and loader change was exercised live. This distinction
+does not invalidate the completed run, and it must not be described as either
+fully pending or as exact-head verification.
+
+The web API still reads the committed CSV fixture and labels that source. It
+must not be described as Exasol-backed until the database adapter is wired into
+the request path.
 
 ## Pending investigation-strategy experiment
 
@@ -119,8 +158,10 @@ replay agreement and actual computation time.
 
 ## Known unavailable checks
 
-- No local `exasol` or `exakit` command and no team endpoint were available, so
-  schema compilation, SQL results and database timing were not run.
+- The offline Mac QA run had no local Exasol deployment or team connection, so
+  that machine did not produce database results. A separate AWS live run did,
+  as recorded above, but the later combined integration head still needs its
+  own database rerun.
 - No live document model is connected. Example facts are labelled synthetic;
   no API credits were used.
 - The frontend has a production build gate and a recorded manual visual smoke,

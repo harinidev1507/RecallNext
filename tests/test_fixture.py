@@ -3,7 +3,12 @@ from pathlib import Path
 import pytest
 
 from data.generate_fixture import build_fixture, check_fixture, validate_fixture
-from data.load_fixture import TABLE_SPECS, read_typed_rows, remove_demo_fixture
+from data.load_fixture import (
+    TABLE_SPECS,
+    _to_wire_value,
+    read_typed_rows,
+    remove_demo_fixture,
+)
 
 
 class _CountStatement:
@@ -83,3 +88,12 @@ def test_replace_demo_refuses_a_schema_containing_other_incidents(shared_table):
         command.lstrip().startswith("SELECT COUNT(*)")
         for command, _ in connection.commands
     )
+
+
+def test_loader_converts_timestamps_to_json_serializable_wire_values():
+    from datetime import datetime
+
+    timestamp = datetime.fromisoformat("2026-09-07T12:34:56")
+
+    assert _to_wire_value(timestamp) == "2026-09-07 12:34:56"
+    assert _to_wire_value(12) == 12
