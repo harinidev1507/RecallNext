@@ -12,6 +12,10 @@ Public visitors can explore the Exasol-backed incident and decisions. Evidence e
 
 [View the RecallNext project presentation (PDF)](docs/presentation/RecallNext_Project_Presentation.pdf)
 
+## Demo video
+
+[Watch the 2:50 RecallNext demo on YouTube](https://youtu.be/nwFw2zh-xeQ)
+
 ## What works
 
 - deterministic generation of 125 feasible histories for the committed six-shipment fixture;
