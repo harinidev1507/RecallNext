@@ -8,6 +8,10 @@ Live deployment: https://recallnext.13-201-33-157.nip.io/
 
 Public visitors can explore the Exasol-backed incident and decisions. Evidence extraction and every state-changing action require the separately shared reviewer token.
 
+## Project presentation
+
+[View the RecallNext project presentation (PDF)](docs/presentation/RecallNext_Project_Presentation.pdf)
+
 ## What works
 
 - deterministic generation of 125 feasible histories for the committed six-shipment fixture;
